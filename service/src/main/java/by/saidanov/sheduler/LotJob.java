@@ -1,14 +1,11 @@
 package by.saidanov.sheduler;
 
 import by.saidanov.auction.entities.Lot;
-import by.saidanov.dao.impl.LotDAO;
-import by.saidanov.exceptions.DaoException;
-import by.saidanov.managers.PoolManager;
+import by.saidanov.exceptions.ServiceException;
+import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
 import org.quartz.*;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * Description: this class is responsible for lot price reduction. One object of this class creates for every lot.
@@ -22,11 +19,9 @@ public class LotJob implements Job {
         JobDataMap lotMap = context.getJobDetail().getJobDataMap();
         Lot irrelevantLot = (Lot) lotMap.get("lot");
         int lotId = irrelevantLot.getId();
-        Connection connection;
         try {
             AuctionLogger.getInstance().log(getClass(), "LotJoB Works!!!");
-            connection = PoolManager.getDataSource().getConnection();
-            Lot relevantLot = LotDAO.getInstance().getById(lotId, connection);
+            Lot relevantLot = LotService.getInstance().getById(lotId);
             Scheduler scheduler = context.getScheduler();
 
             int priceCutStep = relevantLot.getPriceCutStep();
@@ -41,19 +36,19 @@ public class LotJob implements Job {
 
             if (isNew){
                 relevantLot.setNew(false);
-                LotDAO.getInstance().update(relevantLot, connection);
+                LotService.getInstance().update(relevantLot);
             }else {
                 currentPrice -= priceCutStep;
             }
 
             if (currentPrice >= minPrice) {
                 relevantLot.setCurrentPrice(currentPrice);
-                LotDAO.getInstance().update(relevantLot, connection);
+                LotService.getInstance().update(relevantLot);
             } else if (currentPrice < minPrice) {
-                LotDAO.getInstance().delete(lotId, connection);
+                LotService.getInstance().delete(lotId);
                 scheduler.shutdown();
             }
-        } catch (SQLException | DaoException | SchedulerException e) {
+        } catch (ServiceException | SchedulerException e) {
             AuctionLogger.getInstance().log(
                                     getClass(), "LotJob \"execute()\" method throw exception " + e.getMessage());
         }

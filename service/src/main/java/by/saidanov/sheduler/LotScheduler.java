@@ -1,6 +1,8 @@
 package by.saidanov.sheduler;
 
 import by.saidanov.auction.entities.Lot;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 import org.quartz.*;
 import org.quartz.core.jmx.JobDataMapSupport;
 import org.quartz.impl.StdSchedulerFactory;

@@ -56,10 +56,10 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <phase>package</phase>
                         <goals>
                             <goal>deploy</goal>
                         </goals>
-                        <phase>package</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -68,16 +68,18 @@
 
     <dependencyManagement>
         <dependencies>
+
             <!-- Logger -->
             <dependency>
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <version>1.2.16</version>
             </dependency>
+
             <dependency>
                 <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>1.7.21</version>
+                <artifactId>slf4j-simple</artifactId>
+                <version>1.6.2</version>
             </dependency>
 
             <!-- JSTL -->
@@ -143,6 +145,31 @@
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <version>2.7</version>
             </dependency>
+
+            <!--Hibernate ORM-->
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>4.3.11.Final</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-entitymanager</artifactId>
+                <version>4.3.11.Final</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-ehcache</artifactId>
+                <version>4.3.11.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>net.sf.ehcache</groupId>
+                <artifactId>ehcache-core</artifactId>
+                <version>2.6.11</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

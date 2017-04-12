@@ -1,0 +1,30 @@
+<ehcache>
+    <diskStore path="java.io.tmpdir"/>
+
+    <defaultCache
+            maxEntriesLocalHeap="20000"
+            eternal="false"
+            timeToIdleSeconds="300"
+            timeToLiveSeconds="300"
+            overflowToDisk="true"
+            diskPersistent="false"
+            diskExpiryThreadIntervalSeconds="300"
+            memoryStoreEvictionPolicy="LRU"
+    />
+
+    <!--maxElementsInMemory="20000"-->
+    <!--maxElementInMemory="15000"-->
+
+    <cache name="by.saidanov.auction.entities.User"
+           maxEntriesLocalHeap="20000"
+           eternal="true"
+           overflowToDisk="false"/>
+    <cache name="by.saidanov.auction.entities.Lot"
+           maxEntriesLocalHeap="20000"
+           eternal="true"
+           overflowToDisk="false"/>
+    <cache name="by.saidanov.auction.entities.Account"
+           maxEntriesLocalHeap="20000"
+           eternal="true"
+           overflowToDisk="false"/>
+</ehcache>

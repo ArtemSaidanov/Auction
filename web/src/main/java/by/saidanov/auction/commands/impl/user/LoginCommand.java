@@ -13,6 +13,8 @@ import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.AccountService;
 import by.saidanov.services.impl.UserService;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 
 import javax.servlet.http.HttpServletRequest;
@@ -48,10 +50,11 @@ public class LoginCommand implements BaseCommand {
                 page = ConfigurationManager.getInstance().getProperty(PagePath.INDEX_PAGE_PATH);
                 request.setAttribute(Parameters.ERROR_LOGIN_OR_PASSWORD, MessageManager.getInstance().getProperty(MessageConstants.WRONG_LOGIN_OR_PASSWORD));
             }
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             page = ConfigurationManager.getInstance().getProperty(PagePath.ERROR_PAGE_PATH);
             request.setAttribute(Parameters.ERROR_DATABASE, MessageManager.getInstance().getProperty(MessageConstants.DATABASE_ERROR));
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }

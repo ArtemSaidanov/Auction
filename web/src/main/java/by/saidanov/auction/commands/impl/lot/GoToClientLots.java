@@ -12,6 +12,8 @@ import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.SQLException;
@@ -30,15 +32,16 @@ public class GoToClientLots implements BaseCommand {
         String message = null;
         User user = RequestParamParser.getUserFromSession(request);
         try {
-            List<Lot> lotList = LotService.getInstance().getUserLots(user.getId());
+            List<Lot> lotList = LotService.getInstance().getUserLots(user);
             request.setAttribute(Parameters.LOT_LIST, lotList);
             page = ConfigurationManager.getInstance().getProperty(PagePath.SHOW_ALL_CLIENT_LOTS);
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             page = ConfigurationManager.getInstance().getProperty(PagePath.ERROR_PAGE_PATH);
             request.setAttribute(Parameters.ERROR_DATABASE, MessageManager.getInstance().getProperty(MessageConstants.DATABASE_ERROR));
             message = "GoToClientLots Error" + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }
