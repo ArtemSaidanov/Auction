@@ -5,6 +5,7 @@ import by.saidanov.auction.entities.User;
 import by.saidanov.dao.ILotDAO;
 import by.saidanov.exceptions.DaoException;
 import org.hibernate.Criteria;
+import org.hibernate.Query;
 import org.hibernate.criterion.Restrictions;
 
 import java.util.ArrayList;
@@ -34,10 +35,12 @@ public class LotDAOImpl extends BaseDaoImpl implements ILotDAO {
     }
 
     @Override
-    public List<Lot> getAll(User user) throws DaoException {
+    public List<Lot> getAll(User user, int firstResult) throws DaoException {
         Criteria criteria = getSession().createCriteria(Lot.class);
         criteria.add(Restrictions.ne("user", user));
         criteria.add(Restrictions.eq("isOpen", true));
+        criteria.setFirstResult(firstResult);
+        criteria.setMaxResults(3);
         List result = criteria.list();
         List<Lot> allLots = new ArrayList<>();
         allLots.addAll(result);
@@ -86,5 +89,19 @@ public class LotDAOImpl extends BaseDaoImpl implements ILotDAO {
         List<Lot> allLots = new ArrayList<>();
         allLots.addAll(result);
         return allLots;
+    }
+
+    @Override
+    public Integer getRowCount(User user) throws DaoException {
+        String selectRowNumber = "select count(*) from Lot where user != :user and isOpen = true";
+        Query query = getSession().createQuery(selectRowNumber);
+        query.setParameter("user", user);
+        List users = query.list();
+        Long rowCount = null;
+        for (Object o : users) {
+             rowCount = (Long) o;
+        }
+        Integer i = Math.toIntExact(rowCount);
+        return i;
     }
 }

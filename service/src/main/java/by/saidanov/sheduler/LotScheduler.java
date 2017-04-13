@@ -20,7 +20,6 @@ public class LotScheduler {
 
     public static void startScheduling(Lot lot) throws SchedulerException {
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-
         Map<String, Object> lotMap = new HashMap<>();
         lotMap.put("lot", lot);
         JobDataMap jobDataMap = JobDataMapSupport.newJobDataMap(lotMap);

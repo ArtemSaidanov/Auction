@@ -11,6 +11,7 @@ import by.saidanov.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -192,7 +193,8 @@ public class LotServiceTest {
             baseDao.save(userActual);
             session.getTransaction().commit();
 
-            List<Lot> lotList = LotService.getInstance().getAll(userActual);
+            //TODO may be problems
+            List<Lot> lotList = LotService.getInstance().getAll(userActual, 0);
 
             session.beginTransaction();
             baseDao.delete(expected);
@@ -259,5 +261,17 @@ public class LotServiceTest {
             e.printStackTrace();
         }
         HibernateUtil.getHibernateUtil().closeSession();
+    }
+
+    @Ignore
+    @Test
+    public void getPageListTest() {
+//        int pageNumber = 4;
+//        try {
+//            List<Integer> pageList = LotService.getInstance().getPageList();
+//            Assert.assertEquals(pageNumber, pageList.size());
+//        } catch (ServiceException e) {
+//            e.printStackTrace();
+//        }
     }
 }

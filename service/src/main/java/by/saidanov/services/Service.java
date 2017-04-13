@@ -19,6 +19,8 @@ public interface Service<T extends EntityMarker>{
         return HibernateUtil.getHibernateUtil().getSession();
     }
 
+
+
 //    /**
 //     * Calls Dao add() method
 //     * @param entity - object of derived class Entity

@@ -17,11 +17,12 @@ public interface ILotDAO {
     /**
      * This method get all lots except lot that belong to user called this method
      *
-     * @param user    - user of lot
+     * @param user        - user of lot
+     * @param firstResult - this is row from witch starts showing
      * @return list of lots
      * @throws DaoException - throws an exception on the service layer
      */
-    List<Lot> getAll(User user) throws DaoException;
+    List<Lot> getAll(User user, int firstResult) throws DaoException;
 
     /**
      * This method get all lots
@@ -35,7 +36,7 @@ public interface ILotDAO {
     /**
      * This method changes lot's boolean isOpen to false
      *
-     * @param id      - unique lotId
+     * @param id - unique lotId
      * @throws DaoException - throws an exception on the service layer
      */
     void delete(int id) throws DaoException;
@@ -43,7 +44,7 @@ public interface ILotDAO {
     /**
      * This method gets lot by lotId
      *
-     * @param id      - unique lotId
+     * @param id - unique lotId
      * @return lot
      * @throws DaoException - throws an exception on the service layer
      */
@@ -53,9 +54,11 @@ public interface ILotDAO {
     /**
      * This method gets all user lots
      *
-     * @param user    - user of lot
+     * @param user - user of lot
      * @return list of lots
      * @throws DaoException - throws an exception on the service layer
      */
     List<Lot> getUserLots(User user) throws DaoException;
+
+    Integer getRowCount(User user) throws DaoException;
 }

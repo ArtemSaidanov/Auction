@@ -35,9 +35,24 @@ public class LotListCommand implements BaseCommand {
         String message = null;
         try {
             User user = RequestParamParser.getUserFromSession(request);
-            List<Lot> lotList = LotService.getInstance().getAll(user);
+            List<Integer> pageList = LotService.getInstance().getPageList(user);
+            Integer lotPage = RequestParamParser.getLotPage(request);
+
+
+
+            List<Lot> lotList = LotService.getInstance().getAll(user, lotPage);
+
+
+
             request.setAttribute(LOT_LIST, lotList);
+            request.setAttribute("pageList", pageList);
             page = ConfigurationManager.getInstance().getProperty(LOT_LIST_PAGE_PATH);
+
+
+
+
+
+
         } catch (ServiceException e) {
             request.setAttribute(LOT_LIST_ERROR, MessageManager.getInstance().getProperty(LOTS_NOT_AVAILABLE));
             page = ConfigurationManager.getInstance().getProperty(ERROR_PAGE_PATH);

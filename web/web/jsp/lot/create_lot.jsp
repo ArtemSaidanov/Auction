@@ -26,11 +26,11 @@
             <td><input type="number" min="10" name="startPrice" value="" size="20"/></td>
         </tr>
         <tr>
-            <td>Minimal price, min:</td>
+            <td>Minimal price, $:</td>
             <td><input type="number" min="1" name="minPrice" value="" size="20"/></td>
         </tr>
         <tr>
-            <td>Price reduction step, %:</td>
+            <td>Price reduction step, $:</td>
             <td><input type="number" min="5" name="priceCutStep" value="" size="20"/></td>
         </tr>
         <tr>

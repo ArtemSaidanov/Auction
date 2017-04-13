@@ -9,6 +9,7 @@ import by.saidanov.exceptions.DaoException;
 import by.saidanov.utils.HibernateUtil;
 import org.hibernate.Session;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -77,7 +78,8 @@ public class LotDAOTest {
             expectedList.addAll(lots);
 
             LotDAOImpl lotDao = by.saidanov.dao.impl.LotDAOImpl.getInstance();
-            List<Lot> actualList = lotDao.getAll(user);
+            //TODO may be problems
+            List<Lot> actualList = lotDao.getAll(user, 0);
 
             session.beginTransaction();
             baseDao.delete(user);
@@ -235,6 +237,19 @@ public class LotDAOTest {
     public void getInstanceTest(){
         LotDAOImpl lotDao = by.saidanov.dao.impl.LotDAOImpl.getInstance();
         Assert.assertTrue(lotDao != null);
+    }
+
+    @Ignore
+    @Test
+    public void getRowCountTest(){
+//        LotDAOImpl lotDAO = LotDAOImpl.getInstance();
+//        try {
+//            Integer rowCount = lotDAO.getRowCount();
+//            Integer i = 12;
+//            Assert.assertEquals(i, rowCount);
+//        } catch (DaoException e) {
+//            e.printStackTrace();
+//        }
     }
 
     private Set<Lot> getLotSet(User user) {
