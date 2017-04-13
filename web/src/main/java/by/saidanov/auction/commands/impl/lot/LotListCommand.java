@@ -10,6 +10,8 @@ import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -33,15 +35,31 @@ public class LotListCommand implements BaseCommand {
         String message = null;
         try {
             User user = RequestParamParser.getUserFromSession(request);
-            List<Lot> lotList = LotService.getInstance().getAll(user.getId());
+            List<Integer> pageList = LotService.getInstance().getPageList(user);
+            Integer lotPage = RequestParamParser.getLotPage(request);
+
+
+
+            List<Lot> lotList = LotService.getInstance().getAll(user, lotPage);
+
+
+
             request.setAttribute(LOT_LIST, lotList);
+            request.setAttribute("pageList", pageList);
             page = ConfigurationManager.getInstance().getProperty(LOT_LIST_PAGE_PATH);
-        } catch (SQLException | ServiceException e) {
+
+
+
+
+
+
+        } catch (ServiceException e) {
             request.setAttribute(LOT_LIST_ERROR, MessageManager.getInstance().getProperty(LOTS_NOT_AVAILABLE));
             page = ConfigurationManager.getInstance().getProperty(ERROR_PAGE_PATH);
             message = "LotList error." + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }

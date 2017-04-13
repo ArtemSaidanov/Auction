@@ -30,7 +30,7 @@
             <td><input type="number" min="1" name="minPrice" value="" size="20"/></td>
         </tr>
         <tr>
-            <td>Price reduction step, %:</td>
+            <td>Price reduction step, $:</td>
             <td><input type="number" min="5" name="priceCutStep" value="" size="20"/></td>
         </tr>
         <tr>

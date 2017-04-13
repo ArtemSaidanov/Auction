@@ -1,24 +1,24 @@
 package by.saidanov.services.impl;
 
 import by.saidanov.auction.entities.Account;
+import by.saidanov.auction.entities.EntityMarker;
 import by.saidanov.auction.entities.User;
 import by.saidanov.auction.util.UserType;
-import by.saidanov.dao.impl.AccountDAO;
-import by.saidanov.dao.impl.UserDAO;
+import by.saidanov.dao.BaseDao;
+import by.saidanov.dao.IUserDAO;
+import by.saidanov.dao.impl.BaseDaoImpl;
+import by.saidanov.dao.impl.UserDAOImpl;
 import by.saidanov.exceptions.DaoException;
 import by.saidanov.exceptions.ServiceException;
-import by.saidanov.managers.PoolManager;
+import by.saidanov.services.Service;
 import by.saidanov.utils.AuctionLogger;
-
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * Description: contains business-logic and provides transactional work for user entity
  *
  * @author Artiom Saidanov.
  */
-public class UserService {
+public class UserService implements Service{
 
     private volatile static UserService instance;
 
@@ -39,25 +39,18 @@ public class UserService {
     /**
      * This method checks user login and password
      */
-    public boolean checkUserAuthorization(String login, String password) throws SQLException, ServiceException {
+    public boolean checkUserAuthorization(String login, String password) throws ServiceException {
         boolean isAuthorized;
-        Connection connection = null;
+        IUserDAO userDao = UserDAOImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            isAuthorized = UserDAO.getInstance().isAuthorized(login, password, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            isAuthorized = userDao.isAuthorized(login, password);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return isAuthorized;
     }
@@ -65,25 +58,18 @@ public class UserService {
     /**
      * This method gets user by his login. All logins in application are unique
      */
-    public User getUserByLogin(String login) throws SQLException, ServiceException {
+    public User getUserByLogin(String login) throws ServiceException {
         User user;
-        Connection connection = null;
+        IUserDAO userDao = UserDAOImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            user = UserDAO.getInstance().getByLogin(login, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            user = userDao.getByLogin(login);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return user;
     }
@@ -91,27 +77,18 @@ public class UserService {
     /**
      * This method checks uniqueness of user login
      */
-    public boolean checkIsUserNew(User user) throws SQLException, ServiceException {
-        boolean isNew = false;
-        Connection connection = null;
+    public boolean checkIsUserNew(User user) throws ServiceException {
+        boolean isNew;
+        IUserDAO userDao = UserDAOImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            if (UserDAO.getInstance().isNewUser(user.getLogin(), connection)) {
-                isNew = true;
-            }
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            isNew = userDao.isNewUser(user.getLogin());
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return isNew;
     }
@@ -119,27 +96,19 @@ public class UserService {
     /**
      * This method adds user and user's account to database when user passes the registration
      */
-    public void add(User user, Account account) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void add(User user, Account account) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
+        user.setAccount(account);
+        account.setUser(user);
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            UserDAO.getInstance().add(user, connection);
-            int userId = UserDAO.getInstance().getMaxIdPlusOne(connection);
-            account.setUserId(userId);
-            AccountService.getInstance().add(account);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            baseDao.save(user);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
@@ -156,26 +125,17 @@ public class UserService {
         return userType;
     }
 
-    public void delete(User user) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void delete(User user) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            UserDAO.getInstance().delete(user.getId(), connection);
-            AccountService.getInstance().delete(user.getId());
-            LotService.getInstance().delete(user);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            baseDao.delete(user);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 }

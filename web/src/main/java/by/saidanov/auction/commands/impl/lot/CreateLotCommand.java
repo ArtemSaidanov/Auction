@@ -11,6 +11,8 @@ import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -32,26 +34,28 @@ public class CreateLotCommand implements BaseCommand {
         String page = null;
         String message = null;
         HttpSession session = request.getSession();
-        User user = (User) session.getAttribute(Parameters.USER);
+        User user = RequestParamParser.getUserFromSession(request);
         Lot lot = RequestParamParser.getLot(request);
         if (lot == null) {
             page = ConfigurationManager.getInstance().getProperty(CLIENT_PAGE_PATH);
             request.setAttribute(LOT_CREATION_FAILED, MessageManager.getInstance().getProperty(EMPTY_FIELDS));
+            HibernateUtil.getHibernateUtil().closeSession();
             return page;
         }
-        lot.setUserId(user.getId());
+        lot.setUser(user);
         try {
             LotService.getInstance().add(lot);
             request.setAttribute(NEW_LOT_CREATED, MessageManager.getInstance().getProperty(LOT_CREATED));
             page = ConfigurationManager.getInstance().getProperty(CLIENT_PAGE_PATH);
             message = "Lot id = " + lot.getId() + " was added successfully.";
             AuctionLogger.getInstance().log(getClass(), message);
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             page = ConfigurationManager.getInstance().getProperty(ERROR_PAGE_PATH);
             request.setAttribute(LOT_CREATION_FAILED, MessageManager.getInstance().getProperty(CREATION_FAILED));
             message = "Lot creation failed! " + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 

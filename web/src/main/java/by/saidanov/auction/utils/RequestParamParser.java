@@ -185,4 +185,15 @@ public class RequestParamParser {
             return page;
         } else return null;
     }
+
+    public static Integer getLotPage(HttpServletRequest request) {
+        String strPage = request.getParameter("page");
+        Integer page = 0;
+        if (strPage != null && !strPage.equals("")){
+            page = Integer.valueOf(strPage);
+        }
+        if (page != 0 && page != 1){
+            return page;
+        } else return 0;
+    }
 }

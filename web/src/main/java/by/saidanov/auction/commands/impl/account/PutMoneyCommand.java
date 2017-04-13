@@ -5,12 +5,15 @@ import by.saidanov.auction.constants.MessageConstants;
 import by.saidanov.auction.constants.PagePath;
 import by.saidanov.auction.constants.Parameters;
 import by.saidanov.auction.entities.Account;
+import by.saidanov.auction.entities.User;
 import by.saidanov.auction.managers.ConfigurationManager;
 import by.saidanov.auction.managers.MessageManager;
 import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.AccountService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -38,18 +41,21 @@ public class PutMoneyCommand implements BaseCommand {
         }
         HttpSession session = request.getSession();
         Account account = (Account) session.getAttribute(Parameters.ACCOUNT);
+        User user = (User) session.getAttribute(Parameters.USER);
         try {
             AccountService.getInstance().putMoney(account, moneyToPut);
             request.setAttribute(PUT_TAKE_SUCCESS, MessageManager.getInstance().getProperty(MONEY_PUTTED_SUCCESSFULLY));
-            session.setAttribute(ACCOUNT, AccountService.getInstance().getById(account.getId()));
+            session.setAttribute(ACCOUNT, AccountService.getInstance().getByUserId(user.getId()));
             page = ConfigurationManager.getInstance().getProperty(PagePath.CLIENT_PAGE_PATH);
+            HibernateUtil.getHibernateUtil().closeSession();
             return page;
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             request.setAttribute(Parameters.ERROR_DATABASE, MessageManager.getInstance().getProperty(MessageConstants.DATABASE_ERROR));
             page = ConfigurationManager.getInstance().getProperty(PagePath.ERROR_PAGE_PATH);
             message = "PutMoneyCommand failed " + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }

@@ -1,6 +1,8 @@
 package by.saidanov.sheduler;
 
 import by.saidanov.auction.entities.Lot;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 import org.quartz.*;
 import org.quartz.core.jmx.JobDataMapSupport;
 import org.quartz.impl.StdSchedulerFactory;
@@ -18,7 +20,6 @@ public class LotScheduler {
 
     public static void startScheduling(Lot lot) throws SchedulerException {
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-
         Map<String, Object> lotMap = new HashMap<>();
         lotMap.put("lot", lot);
         JobDataMap jobDataMap = JobDataMapSupport.newJobDataMap(lotMap);

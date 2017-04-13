@@ -1,19 +1,21 @@
 package by.saidanov.services.impl;
 
 import by.saidanov.auction.entities.Account;
+import by.saidanov.auction.entities.EntityMarker;
 import by.saidanov.auction.entities.Lot;
 import by.saidanov.auction.entities.User;
-import by.saidanov.dao.impl.LotDAO;
+import by.saidanov.dao.BaseDao;
+import by.saidanov.dao.ILotDAO;
+import by.saidanov.dao.impl.BaseDaoImpl;
+import by.saidanov.dao.impl.LotDAOImpl;
 import by.saidanov.exceptions.DaoException;
 import by.saidanov.exceptions.ServiceException;
-import by.saidanov.managers.PoolManager;
 import by.saidanov.services.Service;
 import by.saidanov.sheduler.LotScheduler;
 import by.saidanov.utils.AuctionLogger;
 import org.quartz.SchedulerException;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,7 +23,7 @@ import java.util.List;
  *
  * @author Artiom Saidanov.
  */
-public class LotService {
+public class LotService implements Service {
 
     private volatile static LotService instance;
 
@@ -40,57 +42,41 @@ public class LotService {
     }
 
     /**
-     * Calls Dao add() method
+     * Calls Dao save() method
      *
      * @param lot to add to the database
-     * @throws SQLException
+     * @throws ServiceException
      */
-    public void add(Lot lot) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void add(Lot lot) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            LotDAO.getInstance().add(lot, connection);
-            int maxId = LotDAO.getInstance().getMaxId(connection);
-            Lot lotForScheduler = LotDAO.getInstance().getById(maxId, connection);
-            connection.commit();
-            LotScheduler.startScheduling(lotForScheduler);
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException | SchedulerException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            baseDao.save(lot);
+            LotScheduler.startScheduling(lot);
+            getSession().getTransaction().commit();
+        } catch (SchedulerException | DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
     /**
      * This method get all lots
      */
-    public List<Lot> getAll() throws SQLException, ServiceException {
-        Connection connection = null;
+    public List<Lot> getAll() throws ServiceException {
+        ILotDAO lotDao = LotDAOImpl.getInstance();
         List<Lot> lotList;
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            lotList = LotDAO.getInstance().getAll(connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            lotList = lotDao.getAll();
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return lotList;
     }
@@ -98,25 +84,26 @@ public class LotService {
     /**
      * This method get all lots except lot that belong to user called this method
      */
-    public List<Lot> getAll(int userId) throws SQLException, ServiceException {
-        Connection connection = null;
-        List<Lot> lotList;
+    public List<Lot> getAll(User user, Integer lotPage) throws ServiceException {
+        LotDAOImpl lotDao = LotDAOImpl.getInstance();
+        List<Lot> lotList = null;
+
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            lotList = LotDAO.getInstance().getAll(userId, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            int amountOfRowsOnPage = 3;
+            /*TODO назвать правильно. Это число выведено мной в ходе поиска алгоритма*/
+            int i = amountOfRowsOnPage - 1;
+            Integer firstResult = (lotPage * amountOfRowsOnPage) - i;
+            if (firstResult < 0){
+                firstResult = 0;
+            } else firstResult -= 1;
+            lotList = lotDao.getAll(user, firstResult);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return lotList;
     }
@@ -124,25 +111,18 @@ public class LotService {
     /**
      * This method get lot by lotId
      */
-    public Lot getById(int id) throws SQLException, ServiceException {
-        Connection connection = null;
+    public Lot getById(Integer id) throws ServiceException {
+        ILotDAO lotDao = LotDAOImpl.getInstance();
         Lot lot;
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            lot = LotDAO.getInstance().getById(id, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            lot = lotDao.getById(id);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return lot;
     }
@@ -151,72 +131,34 @@ public class LotService {
      * This method updates lot. It changes quantity when someone bought lot.
      * Also this method is used by Quartz Scheduler to change current lot price per time.
      */
-    public void update(Lot lot) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void update(Lot lot) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            LotDAO.getInstance().update(lot, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            baseDao.update(lot);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
     /**
      * This method changes lot's boolean isOpen to false
      */
-    public void delete(int id) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void delete(int id) throws ServiceException {
+        ILotDAO lotDao = LotDAOImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            LotDAO.getInstance().delete(id, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
-
-    /**
-     * This method deletes all user's lots from database
-     **/
-    public void delete(User user) throws SQLException, ServiceException {
-        Connection connection = null;
-        try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            LotDAO.getInstance().delete(user, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            lotDao.delete(id);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
@@ -225,27 +167,24 @@ public class LotService {
      * Method check user's account, and if user have enough money to buy lot
      * money is debited from user's account and is credited to the lot owner's account
      */
-    public boolean buyLot(Lot lotInfo, User user) throws SQLException, ServiceException {
-        Connection connection = null;
+    public boolean buyLot(Lot lot, User buyer, Integer quantity) throws ServiceException {
         boolean isBought = false;
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            Lot lot = LotDAO.getInstance().getById(lotInfo.getId(), connection);
-            Account account = AccountService.getInstance().getByUserId(user.getId());
-            int lotPrice = lot.getCurrentPrice();
+            //Lot lot = LotDAOImpl.getInstance().getById(lotInfo.getId());
+            Account buyersAccount = AccountService.getInstance().getByUserId(buyer.getId());
+            int lotPrice = lot.getCurrentPrice() * quantity;
             int lotQuantity = lot.getQuantity();
-            int userMoney = account.getAmountOfMoney();
-            if (userMoney > lotPrice) {
-                account.setAmountOfMoney(userMoney - lotPrice);
-                AccountService.getInstance().update(account);
+            int buyersMoney = buyersAccount.getAmountOfMoney();
+            if (buyersMoney > lotPrice) {
+                buyersAccount.setAmountOfMoney(buyersMoney - lotPrice);
+                AccountService.getInstance().update(buyersAccount);
 
-                int lotOwnerId = lot.getUserId();
+                int lotOwnerId = lot.getUser().getId();
                 Account lotOwnerAccount = AccountService.getInstance().getByUserId(lotOwnerId);
                 int lotOwnerMoney = lotOwnerAccount.getAmountOfMoney();
                 lotOwnerAccount.setAmountOfMoney(lotOwnerMoney + lotPrice);
                 AccountService.getInstance().update(lotOwnerAccount);
-                int actualQuantity = lotQuantity - lotInfo.getQuantity();
+                int actualQuantity = lotQuantity - quantity;
                 lot.setQuantity(actualQuantity);
                 if (actualQuantity == 0) {
                     LotService.getInstance().delete(lot.getId());
@@ -254,18 +193,10 @@ public class LotService {
                 }
                 isBought = true;
             }
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+        } catch (Exception e) {
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return isBought;
     }
@@ -273,26 +204,43 @@ public class LotService {
     /**
      * This method gets all user's lots
      */
-    public List<Lot> getUserLots(int userId) throws SQLException, ServiceException {
-        Connection connection = null;
+    public List<Lot> getUserLots(User user) throws ServiceException {
+        ILotDAO lotDao = LotDAOImpl.getInstance();
         List<Lot> lotList;
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            lotList = LotDAO.getInstance().getUserLots(userId, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            lotList = lotDao.getUserLots(user);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return lotList;
+    }
+
+
+    public List<Integer> getPageList(User user) throws ServiceException {
+        ILotDAO lotDao = LotDAOImpl.getInstance();
+        List<Integer> pageList = new ArrayList<>();
+        try {
+            getSession().beginTransaction();
+            Integer rowCount = lotDao.getRowCount(user);
+            Integer pageNumber;
+            if (rowCount % 3 == 0) {
+                pageNumber = rowCount / 3;
+            } else pageNumber = (rowCount / 3) + 1;
+            for (int i = 0; i < pageNumber; i++) {
+                pageList.add(i+1);
+            }
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
+        }
+        return pageList;
     }
 }

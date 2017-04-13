@@ -14,6 +14,8 @@ import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.AccountService;
 import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -42,10 +44,12 @@ public class BuyLotCommand implements BaseCommand {
                 request.setAttribute(LOT, lot);
                 request.setAttribute(Parameters.LOT_QUANTITY_IS_BLANK, MessageManager.getInstance().getProperty(MessageConstants.BLANK_QUANTITY));
                 page = ConfigurationManager.getInstance().getProperty(PagePath.SHOW_LOT_PAGE_PATH);
+                HibernateUtil.getHibernateUtil().closeSession();
                 return page;
             }
             User user = RequestParamParser.getUserFromSession(request);
-            boolean isBought = LotService.getInstance().buyLot(lot, user);
+         //   lot.setQuantity(quantity);
+            boolean isBought = LotService.getInstance().buyLot(lot, user, quantity);
             if (isBought) {
                 //TODO добавить обновление кошелька
                 Account account = AccountService.getInstance().getByUserId(user.getId());
@@ -57,12 +61,13 @@ public class BuyLotCommand implements BaseCommand {
                 page = ConfigurationManager.getInstance().getProperty(PagePath.CLIENT_PAGE_PATH);
             }
 
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             request.setAttribute(Parameters.ERROR_DATABASE, MessageManager.getInstance().getProperty(MessageConstants.DATABASE_ERROR));
             page = ConfigurationManager.getInstance().getProperty(PagePath.ERROR_PAGE_PATH);
             message = "BuyLotCommand failed " + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }

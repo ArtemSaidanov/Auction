@@ -25,36 +25,35 @@
     </build>
 
     <dependencies>
-        <!-- JSTL -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>jstl</artifactId>
-            <version>1.2</version>
-        </dependency>
 
-        <!-- Servlet-API -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>3.1.0</version>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>by.saidanov</groupId>
             <artifactId>entity</artifactId>
             <version>1.0</version>
         </dependency>
+
         <dependency>
             <groupId>by.saidanov</groupId>
             <artifactId>service</artifactId>
             <version>1.0</version>
         </dependency>
 
+        <!-- JSTL -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
         </dependency>
 
+        <!-- Servlet-API -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+        </dependency>
 
     </dependencies>
 </project>
