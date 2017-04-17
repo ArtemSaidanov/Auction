@@ -9,6 +9,8 @@ import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.SQLException;
@@ -32,12 +34,13 @@ public class ShowLotCommand implements BaseCommand {
             Lot lot = LotService.getInstance().getById(lotId);
             request.setAttribute(LOT, lot);
             page = ConfigurationManager.getInstance().getProperty(SHOW_LOT_PAGE_PATH);
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             page = ConfigurationManager.getInstance().getProperty(ERROR_PAGE_PATH);
             request.setAttribute(LOT_NOT_FOUND, MessageManager.getInstance().getProperty(LOTS_NOT_AVAILABLE));
             message = "ShowLotCommand failed! " + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }

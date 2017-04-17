@@ -1,24 +1,26 @@
 package by.saidanov.services.impl;
 
 import by.saidanov.auction.entities.Account;
-import by.saidanov.dao.impl.AccountDAO;
-import by.saidanov.dao.impl.LotDAO;
+import by.saidanov.auction.entities.EntityMarker;
+import by.saidanov.dao.BaseDao;
+import by.saidanov.dao.IAccountDAO;
+import by.saidanov.dao.impl.AccountDaoImpl;
+import by.saidanov.dao.impl.BaseDaoImpl;
 import by.saidanov.exceptions.DaoException;
 import by.saidanov.exceptions.ServiceException;
-import by.saidanov.managers.PoolManager;
 import by.saidanov.services.Service;
 import by.saidanov.utils.AuctionLogger;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
 
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Description: contains business-logic and provides transactional work for account entity
  *
  * @author Artiom Saidanov.
  */
-public class AccountService {
+public class AccountService implements Service {
 
     private volatile static AccountService instance;
 
@@ -36,74 +38,20 @@ public class AccountService {
         return instance;
     }
 
-    public void add(Account entity) throws SQLException, ServiceException {
-        Connection connection = null;
-        try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            AccountDAO.getInstance().add(entity, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
-
-    /**
-     * This method gets account by id. It called when user try to take or put money on account
-     */
-    public Account getById(int id) throws SQLException, ServiceException {
-        Connection connection = null;
-        Account account = null;
-        try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            account = AccountDAO.getInstance().getById(id, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-        return account;
-    }
-
     /**
      * This method updates account by changing amount of money on account
      */
-    public void update(Account account) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void update(Account account) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            AccountDAO.getInstance().update(account, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            baseDao.update(account);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
@@ -114,25 +62,18 @@ public class AccountService {
      * @param userId unique user id
      * @return @{@link Account} object
      */
-    public Account getByUserId(int userId) throws SQLException, ServiceException {
-        Connection connection = null;
-        Account account = null;
+    public Account getByUserId(Integer userId) throws ServiceException {
+        IAccountDAO accountDAO = AccountDaoImpl.getInstance();
+        Account account;
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            account = AccountDAO.getInstance().getByUserId(userId, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            account = accountDAO.getByUserId(userId);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
         return account;
     }
@@ -143,26 +84,18 @@ public class AccountService {
      * @param account     to take money from
      * @param moneyToTake amount of money
      */
-    public void takeMoney(Account account, int moneyToTake) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void takeMoney(Account account, int moneyToTake) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            int amountOfMoney = account.getAmountOfMoney();
-            account.setAmountOfMoney(amountOfMoney - moneyToTake);
-            AccountDAO.getInstance().update(account, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            account.setAmountOfMoney(account.getAmountOfMoney() - moneyToTake);
+            getSession().beginTransaction();
+            baseDao.update(account);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
@@ -172,47 +105,53 @@ public class AccountService {
      * @param account    to put money
      * @param moneyToPut amount of money
      */
-    public void putMoney(Account account, int moneyToPut) throws SQLException, ServiceException {
-        Connection connection = null;
+    public void putMoney(Account account, int moneyToPut) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            int amountOfMoney = account.getAmountOfMoney();
-            account.setAmountOfMoney(amountOfMoney + moneyToPut);
-            AccountDAO.getInstance().update(account, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            account.setAmountOfMoney(account.getAmountOfMoney() + moneyToPut);
+            getSession().beginTransaction();
+            baseDao.update(account);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 
-    public void delete(int userId) throws SQLException, ServiceException {
-        Connection connection = null;
+
+    /**
+     * This method is used only in test classes and for the needs of tests
+     */
+    public void add(Account account) throws ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
         try {
-            connection = PoolManager.getDataSource().getConnection();
-            connection.setAutoCommit(false);
-            AccountDAO.getInstance().delete(userId, connection);
-            connection.commit();
-            AuctionLogger.getInstance().log(getClass(), "Transaction succeeded");
-        } catch (SQLException | DaoException e) {
-            if (connection != null) {
-                connection.rollback();
-            }
-            AuctionLogger.getInstance().log(getClass(), "Transaction failed");
-            throw new ServiceException(e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+            getSession().beginTransaction();
+            baseDao.save(account);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
+        }
+    }
+
+    /**
+     * This method is used only in test classes and for the needs of tests
+     */
+    public void delete(Account account) throws SQLException, ServiceException {
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
+        try {
+            getSession().beginTransaction();
+            baseDao.delete(account);
+            getSession().getTransaction().commit();
+        } catch (DaoException e) {
+            getSession().getTransaction().rollback();
+            String message = e.toString() + " " + getClass();
+            AuctionLogger.getInstance().log(getClass(), message);
+            throw new ServiceException(message);
         }
     }
 }

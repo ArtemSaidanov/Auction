@@ -7,8 +7,14 @@
 <body>
 <c:forEach var="lot" items="${lotList}">
     -----${lot.getName()}-----${lot.getQuantity()}------${lot.getCurrentPrice()}
-        <button onclick="location.href='controller?command=showLot&id=${lot.getId()}'">Show lot</button><br>
+    <button onclick="location.href='controller?command=showLot&id=${lot.getId()}'">Show lot</button>
+    <br>
 </c:forEach>
+<p>Page:
+    <c:forEach var="page" items="${pageList}">
+        <button onclick="location.href='controller?command=lotList&page=${page}'">${page}</button>
+    </c:forEach>
+</p>
 <p><a href="controller?command=back">Go Back</a></p>
 </body>
 </html>

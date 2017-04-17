@@ -1,18 +1,17 @@
 import by.saidanov.auction.entities.Account;
+import by.saidanov.auction.entities.EntityMarker;
 import by.saidanov.auction.entities.User;
 import by.saidanov.auction.util.UserType;
-import by.saidanov.dao.impl.UserDAO;
+import by.saidanov.dao.BaseDao;
+import by.saidanov.dao.impl.BaseDaoImpl;
 import by.saidanov.exceptions.DaoException;
 import by.saidanov.exceptions.ServiceException;
-import by.saidanov.managers.PoolManager;
 import by.saidanov.services.impl.UserService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * Description:
@@ -27,12 +26,14 @@ public class UserServiceTest {
         String invalidPassword = "invalidPassword";
         String validLogin = "Art";
         String validPassword = "1234";
+
         try {
             boolean invalidData = UserService.getInstance().checkUserAuthorization(invalidLogin, invalidPassword);
             boolean validData = UserService.getInstance().checkUserAuthorization(validLogin, validPassword);
             Assert.assertEquals(false, invalidData);
             Assert.assertEquals(true, validData);
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
+            HibernateUtil.getHibernateUtil().closeSession();
             e.printStackTrace();
         }
     }
@@ -48,12 +49,14 @@ public class UserServiceTest {
                                 .lastName("Saidanov")
                                 .accessLevel(0)
                                 .build();
+
         try {
             User user = UserService.getInstance().getUserByLogin(login);
             Assert.assertEquals(expectedUser, user);
             User wrongUser = UserService.getInstance().getUserByLogin("");
-            Assert.assertNotEquals(wrongUser, user);
-        } catch (SQLException | ServiceException e) {
+            Assert.assertNotEquals(expectedUser, wrongUser);
+        } catch (ServiceException e) {
+            HibernateUtil.getHibernateUtil().closeSession();
             e.printStackTrace();
         }
     }
@@ -67,12 +70,14 @@ public class UserServiceTest {
         User newUser = User.builder()
                                 .login("NewUser")
                                 .build();
+
         try {
             boolean notNewU = UserService.getInstance().checkIsUserNew(notNewUser);
             Assert.assertEquals(notNewU, false);
             boolean newU = UserService.getInstance().checkIsUserNew(newUser);
             Assert.assertEquals(newU, true);
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
+            HibernateUtil.getHibernateUtil().closeSession();
             e.printStackTrace();
         }
     }
@@ -80,7 +85,7 @@ public class UserServiceTest {
     @Test
     public void addUserTest() {
         User testUser = User.builder()
-                                .login("tes3")
+                                .login("testUser")
                                 .password("test")
                                 .firstName("test")
                                 .lastName("test")
@@ -89,16 +94,15 @@ public class UserServiceTest {
         Account testAccount = Account.builder()
                                 .amountOfMoney(10000)
                                 .build();
-        try (Connection connection = PoolManager.getDataSource().getConnection()) {
+
+        try {
             UserService.getInstance().add(testUser, testAccount);
-            int maxId = UserDAO.getInstance().getMaxId(connection);
-            testUser.setId(maxId);
-            User actualUser = UserService.getInstance().getUserByLogin("tes3");
+            User actualUser = UserService.getInstance().getUserByLogin("testUser");
             UserService.getInstance().delete(actualUser);
             Assert.assertEquals(testUser, actualUser);
-        } catch (SQLException | ServiceException | DaoException e) {
+        } catch (ServiceException e) {
+            HibernateUtil.getHibernateUtil().closeSession();
             AuctionLogger.getInstance().log(getClass(), e.getMessage());
-            System.out.println("addUserTest failed");
             e.printStackTrace();
         }
     }
@@ -113,28 +117,28 @@ public class UserServiceTest {
         Assert.assertEquals(UserType.ADMIN, adminT);
     }
 
-    @Ignore
-    @Test
-    public void deleteTest() {
-        User testUser = User.builder()
-                                .login("test1312")
-                                .password("test")
-                                .firstName("test")
-                                .lastName("test")
-                                .accessLevel(0)
-                                .build();
-        Account testAccount = Account.builder()
-                                .amountOfMoney(10000)
-                                .build();
-        try (Connection connection = PoolManager.getDataSource().getConnection()) {
-            UserService.getInstance().add(testUser, testAccount);
-            int maxId = UserDAO.getInstance().getMaxId(connection);
-            testUser.setId(maxId);
-            UserService.getInstance().delete(testUser);
-            User deletedUser = UserService.getInstance().getUserByLogin(testUser.getLogin());
-            Assert.assertEquals(null, deletedUser);
-        } catch (SQLException | ServiceException | DaoException e) {
-            e.printStackTrace();
-        }
-    }
+//    @Ignore
+//    @Test
+//    public void deleteTest() {
+//        User testUser = User.builder()
+//                                .login("test1312")
+//                                .password("test")
+//                                .firstName("test")
+//                                .lastName("test")
+//                                .accessLevel(0)
+//                                .build();
+//        Account testAccount = Account.builder()
+//                                .amountOfMoney(10000)
+//                                .build();
+//        try (Connection connection = PoolManager.getDataSource().getConnection()) {
+//            UserService.getInstance().add(testUser, testAccount);
+//            int maxId = UserDAO.getInstance().getMaxId(connection);
+//            testUser.setId(maxId);
+//            UserService.getInstance().delete(testUser);
+//            User deletedUser = UserService.getInstance().getUserByLogin(testUser.getLogin());
+//            Assert.assertEquals(null, deletedUser);
+//        } catch (SQLException | ServiceException | DaoException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

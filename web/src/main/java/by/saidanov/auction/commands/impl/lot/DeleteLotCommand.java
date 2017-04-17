@@ -8,6 +8,8 @@ import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.LotService;
 import by.saidanov.utils.AuctionLogger;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.SQLException;
@@ -31,12 +33,13 @@ public class DeleteLotCommand implements BaseCommand{
             LotService.getInstance().delete(RequestParamParser.getLotId(request));
             request.setAttribute(LOT_DELETED, MessageManager.getInstance().getProperty(LOT_WAS_DELETED));
             page = ConfigurationManager.getInstance().getProperty(CLIENT_PAGE_PATH);
-        } catch (SQLException | ServiceException e) {
+        } catch (ServiceException e) {
             request.setAttribute(LOT_DELETE_FAILED, MessageManager.getInstance().getProperty(LOT_DELETE_WAS_FAILED));
             page = ConfigurationManager.getInstance().getProperty(ERROR_PAGE_PATH);
             message = "Lot deleting failed " + e.getMessage();
             AuctionLogger.getInstance().log(getClass(), message);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 }

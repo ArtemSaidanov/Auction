@@ -10,6 +10,8 @@ import by.saidanov.auction.managers.MessageManager;
 import by.saidanov.auction.utils.RequestParamParser;
 import by.saidanov.exceptions.ServiceException;
 import by.saidanov.services.impl.UserService;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.SQLException;
@@ -44,10 +46,11 @@ public class RegistrationCommand implements BaseCommand {
                 request.setAttribute(OPERATION_MESSAGE, MessageManager.getInstance().getProperty(EMPTY_FIELDS));
                 page = ConfigurationManager.getInstance().getProperty(REGISTRATION_PAGE_PATH);
             }
-        } catch (ServiceException | SQLException e) {
+        } catch (ServiceException e) {
             request.setAttribute(ERROR_DATABASE, MessageManager.getInstance().getProperty(DATABASE_ERROR));
             page = ConfigurationManager.getInstance().getProperty(ERROR_PAGE_PATH);
         }
+        HibernateUtil.getHibernateUtil().closeSession();
         return page;
     }
 

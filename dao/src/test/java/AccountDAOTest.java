@@ -1,14 +1,16 @@
 import by.saidanov.auction.entities.Account;
-import by.saidanov.dao.impl.AccountDAO;
+import by.saidanov.auction.entities.EntityMarker;
+import by.saidanov.auction.entities.User;
+import by.saidanov.dao.BaseDao;
+import by.saidanov.dao.impl.AccountDaoImpl;
+import by.saidanov.dao.impl.BaseDaoImpl;
 import by.saidanov.exceptions.DaoException;
-import by.saidanov.managers.PoolManager;
-import org.junit.After;
+import by.saidanov.utils.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.id.IdentifierGenerationException;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * Description:
@@ -17,78 +19,99 @@ import java.sql.SQLException;
  */
 public class AccountDAOTest {
 
-    private Connection connection;
-
-    @Before
-    public void createConnection() {
-        try {
-            connection = PoolManager.getDataSource().getConnection();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
+    /**
+     * This test checks: adding an account, getting an account and deleting an account from table
+     */
     @Test
-    public void addTest() {
-        int userId = (int) (Math.random() * 50000 + 100000000);
+    public void accountDaoTest() {
         Account account = Account.builder()
-                                .userId(userId)
-                                .amountOfMoney(1000)
+                                .amountOfMoney(500)
                                 .build();
-        try {
-            AccountDAO.getInstance().add(account, connection);
-            Account actual = AccountDAO.getInstance().getByUserId(userId, connection);
-            Assert.assertEquals(account.getUserId(), actual.getUserId());
-            AccountDAO.getInstance().delete(userId, connection);
-        } catch (DaoException e) {
-            e.printStackTrace();
-        }
-    }
 
-    @Test
-    public void getByIdTest() {
-        int userId = (int) (Math.random() * 50000 + 100000000);
-        Account account = Account.builder()
-                                .userId(userId)
-                                .amountOfMoney(1000)
+        User user = User.builder()
+                                .accessLevel(0)
+                                .firstName("UserWithAcc")
+                                .lastName("UserWithAcc")
+                                .login("UserWithAcc")
+                                .password("UserWithAcc")
+                                .account(account)
                                 .build();
+        account.setUser(user);
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
+        Session session = HibernateUtil.getHibernateUtil().getSession();
+
         try {
-            AccountDAO.getInstance().add(account, connection);
-            int accountId = AccountDAO.getInstance().getByUserId(userId, connection).getId();
-            account.setId(accountId);
-            Account actual = AccountDAO.getInstance().getById(accountId, connection);
+            session.beginTransaction();
+            baseDao.save(user);
+            session.getTransaction().commit();
+
+            session.beginTransaction();
+            account.getId();
+            Account actual = (Account) baseDao.get(Account.class, account.getId());
+            session.getTransaction().commit();
+
             Assert.assertEquals(account, actual);
-        } catch (DaoException e) {
+
+            session.beginTransaction();
+            baseDao.delete(user);
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            session.getTransaction().rollback();
             e.printStackTrace();
         }
+        HibernateUtil.getHibernateUtil().closeSession();
+    }
+
+    @Test(expected = IdentifierGenerationException.class)
+    public void singleAccountAddTest() {
+        Account account = Account.builder()
+                                .amountOfMoney(500)
+                                .build();
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
+        Session session = HibernateUtil.getHibernateUtil().getSession();
+        try {
+            session.beginTransaction();
+            baseDao.save(account);
+            session.getTransaction().commit();
+        } catch (DaoException e) {
+            e.printStackTrace();
+            session.getTransaction().rollback();
+        }
+        HibernateUtil.getHibernateUtil().closeSession();
     }
 
     @Test
-    public void updateTest() {
-        int userId = (int) (Math.random() * 50000 + 100000000);
-        int startAmountOfMoney = 1000;
+    public void getByUserIdTest() {
         Account account = Account.builder()
-                                .userId(userId)
-                                .amountOfMoney(startAmountOfMoney)
+                                .amountOfMoney(500)
                                 .build();
-        try {
-            AccountDAO.getInstance().add(account, connection);
-            account.setAmountOfMoney(500);
-            AccountDAO.getInstance().update(account, connection);
-            Account actual = AccountDAO.getInstance().getByUserId(userId,connection);
-            Assert.assertNotEquals(startAmountOfMoney, actual.getAmountOfMoney());
-            AccountDAO.getInstance().delete(userId, connection);
-        } catch (DaoException e) {
-            e.printStackTrace();
-        }
-    }
 
-    @After
-    public void closeConnection() {
+        User user = User.builder()
+                                .accessLevel(0)
+                                .firstName("UserWithAcc")
+                                .lastName("UserWithAcc")
+                                .login("UserWithAcc")
+                                .password("UserWithAcc")
+                                .account(account)
+                                .build();
+        account.setUser(user);
+        BaseDao<EntityMarker> baseDao = BaseDaoImpl.getInstance();
+        Session session = HibernateUtil.getHibernateUtil().getSession();
         try {
-            connection.close();
-        } catch (SQLException e) {
+//            session.getTransaction().begin();
+            baseDao.save(account);
+            session.getTransaction().commit();
+
+            Account actual = AccountDaoImpl.getInstance().getByUserId(user.getId());
+            Assert.assertEquals(account, actual);
+
+            session.getTransaction().begin();
+            baseDao.delete(user);
+            session.getTransaction().commit();
+        } catch (DaoException e) {
+            session.getTransaction().rollback();
             e.printStackTrace();
         }
+        HibernateUtil.getHibernateUtil().closeSession();
     }
 }
